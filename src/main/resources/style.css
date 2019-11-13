@@ -1,0 +1,22 @@
+.root {
+    -fx-background-color: white;
+}
+.button {
+    /*-fx-background-color: white;*/
+    -fx-background-radius: 8;
+}
+
+/*
+#dialog {
+    -fx-border-color: grey;
+    -fx-border-width: 6;
+}*/
+
+.noborder{
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: white;
+}
