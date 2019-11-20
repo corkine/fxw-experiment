@@ -1,0 +1,74 @@
+/*欢迎指导语文字*/
+.welcome_text {
+    -fx-font-size: 37px;
+    -fx-padding: 0 0 30px 0;
+}
+/*被试信息收集框架*/
+.ParticipantGridPane {
+    -fx-alignment: center;
+    -fx-font-size: 26px;
+    -fx-hgap: 10px;
+    -fx-vgap: 10px;
+    -fx-padding: 10px;
+}
+/*知识问卷指导语所在的框架 请您根据现有的知识情况选择相符的选项*/
+.knowledgeScreenHeaderIntro {
+    -fx-font-size: 30px;
+    -fx-padding: 40px 0 0 40px;
+}
+/*题目文本所在的框架 hgap 调节选项间距，vgap 调节题目和选项间隔*/
+.knowledgeScreenHeaderContentGridPane {
+    -fx-padding: 40px 0 0 40px;
+    -fx-hgap: 15px;
+    -fx-vgap: 10px;
+}
+
+/*题目文本*/
+.knowledgeScreenHeaderContent {
+    -fx-font-size: 20px;
+}
+/*选项文本*/
+.knowledgeScreenHeaderOption {
+    -fx-font-size: 15px;
+}
+/*量表指导语*/
+.measureQuizIntro {
+    /*调节左边距调节最后一个，记得同样调节 measureQuizHeaderContentAnswerHBox 的左边距*/
+    -fx-font-size: 20px;
+    -fx-padding: 30px 20px 30px 20px;
+}
+/*量表表头文字*/
+.measureQuizHeaderText {
+    -fx-font-size: 15px;
+}
+/*量表内容题目文字*/
+.measureQuizContextText {
+    -fx-font-size: 15px;
+}
+/*量表可滚动内容、不可滚动表头 HBox*/
+.measureQuizHeaderContentAnswerHBox {
+    /*调节左边距调节最后一个，记得同样调节 measureQuizIntro 的左边距*/
+    -fx-padding: 0px 20px 30px 20px;
+}
+/*量表可滚动内容、不可滚动表头 GridPane*/
+.measureQuizHeaderContentAnswerGridPane {
+    /*表头文字水平间距，调节此处请同样调节 measureQuizContentAnswerGridPane */
+    -fx-hgap: 5px;
+    -fx-alignment: top-left;
+    -fx-grid-lines-visible: false;
+}
+/*量表可滚动内容 ScrollPane*/
+.measureQuizContentAnswerScrollPane {
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: never;
+}
+/*量表可滚动内容 GridPane - 题目和内容*/
+.measureQuizContentAnswerGridPane {
+    -fx-padding: 20px 0 0 0;
+    /*选项水平间距，调节此处请同样调节 measureQuizHeaderContentAnswerGridPane*/
+    -fx-hgap: 5px;
+    /*每个题目垂直的间距*/
+    -fx-vgap: 20px;
+    -fx-alignment: center-left;
+    -fx-grid-lines-visible: false;
+}

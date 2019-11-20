@@ -7,8 +7,12 @@ import org.slf4j.Logger
 case class Participant(id:String, gender: Gender, age:Int, major: String, grade: String)
 
 class Gender
-object Male extends Gender
-object Female extends Gender
+object Male extends Gender {
+  override def toString: String = "男"
+}
+object Female extends Gender {
+  override def toString: String = "女"
+}
 
 case class Answer(content:String)
 

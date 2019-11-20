@@ -49,7 +49,10 @@ object FXWExperiment {
       |0.0.5 2019-11-12 修改了一些指导语的细节问题
       |0.0.6 2019-11-13 修改了认知量表的顺序、更改了视频指导语、更改了前测问卷的可选性以及答案的收集判断。
       |0.0.7 2019-11-13 被试信息收集界面字体大小调整，题目内容调整。
+      |0.0.8 2019-11-20 修复了被试数据保存问题，修复性别保存的易读性问题，添加学习时长的保存记录，添加了卷首语，提供了 CSS 自定义功能，重构了 UI，大多使用 CSS 定义，方便后续更改，允许表格自定义每列列宽和总列宽，提供跳过视频选项。
       |""".stripMargin
+
+  def VERSION(in:String):String = in.split("\n").map(_.trim).reverse.head
 
   val inf = 100000000
   val min2: Int = 1000 * 60 * 2
@@ -61,32 +64,9 @@ object FXWExperiment {
   val finishIntro = "finishIntro.png"
   val videoMark: (String, String) = ("normal.mp4", "positive.mp4")
 
-  var knowledgeScreenHeaderIntroFontSize = 30
-  var knowledgeScreenHeaderContentFontSize = 20
-  var knowledgeScreenHeaderContentPaddingLeft = 40
-  var knowledgeScreenHeaderContentPaddingTop = 40
-  var knowledgeScreenContentPaddingLeft = 40
-  var knowledgeScreenContentPaddingTop = 40
   var knowledgeScreenContentWrapWidth = 720
-  var knowledgeOptionFontSize = 15
-  var knowledgeScreenOptionVGap = 10
-  var knowledgeScreenOptionHGap = 15
 
-  var measureQuizIntroFontSize = 20
-  var measureQuizDescriptionFontSize = 15
-  var measureQuizIntroHeaderPaddingTop = 30
-  var measureQuizIntroHeaderPaddingBottom = 30
-  var measureQuizIntroHeaderPaddingLeft = 20
-  var measureQuizIntroHeaderPaddingRight = 20
-  var measureQuizContentFontSize = 15
-  var measureQuizFormPercent = 100
-  var measureQuizContentPercent = 50
-  var measureQuizContentGap = 20
   var measureQuizContentGapLineVisible = true
-
-  var measureQuizContentPercentWhenTooManyAnswers = 30
-  var measureQuizAnswerPercent = 10
-  var measureQuizAnswerPercentWhenTooManyAnswers = 7
 
   var useCameraRecord = true
   var useNormalEmotion = true
@@ -94,7 +74,16 @@ object FXWExperiment {
   var allowSpaceControlMediaPause = true
   var notUsePreKnowledgeQuestion = false
   var useRandomConMeasureQuiz = true
-  var participantCollectFontSize = 15
+
+  var emotionMeasureQuizRowWidths = "1400 30 14 14 14 14 14" //1 + 5
+  var agentMeasureQuizRowWidths = "1400 30 14 14 14 14 14" //1 + 5
+  var conMeasureQuizRowWidths = "1700 30 7 2 2 2 2 2 2 2 2 2 7" //1 + 11
+  var motiveMeasureQuizRowWidths = "1400 30 10 10 10 10 10 10 10" //1 + 7
+  def ROWS(in:String): Array[Int] = in.trim.split(" ").map(_.trim.toInt).tail
+  def DEFINED_WIDTH(in:String): Int = in.trim.split(" ").map(_.trim.toInt).head
+
+  var skipVideo = false
+
 
   def load(name:String): Try[File] = {
     val file = new File(s"fxw/$name")
@@ -143,6 +132,7 @@ object Data {
   }
   val agentMeasureQuiz = new AgentMeasureQuiz()
   val motiveMeasureQuiz = new MotiveMeasureQuiz()
+  var learnUseSeconds: Int = -1
 
   def writeToCSV(): Unit = {
     val name = user.id + "_" + LocalDate.now().toString + ".csv"
@@ -196,8 +186,11 @@ object Data {
       logger.warn(s"Head 和 Content 不匹配： ${header.mkString(", ")}, ${content.mkString(", ")}")
     }
 
+    Array("ID", "Gender", "Age", "Major", "Grade", "LearnUseSeconds").foreach(i => sb.append(i + ", "))
     header.foreach(word => sb.append(word).append(", "))
     sb.append("\n")
+    Array(user.id, user.gender.toString, user.age.toString,
+      user.major, user.grade, learnUseSeconds.toString).foreach(i => sb.append(i + ", "))
     content.foreach(word => sb.append(word).append(", "))
 
     val writer = new FileWriter(new File(name))
@@ -238,7 +231,7 @@ class BasicTrial extends Trial {
     //Video Intro
     screens.add(new IntroductionScreen(load(learnIntro)).initScreen())
     //Video
-    screens.add(new VideoPlayAndFeedBackScreen(useNormalEmotion).initScreen())
+    if (!skipVideo) screens.add(new VideoPlayAndFeedBackScreen(useNormalEmotion).initScreen())
     //Video Intro 2
     screens.add(new IntroductionScreen(load(learnIntro2)).initScreen())
     //AfterEmotion
@@ -269,78 +262,73 @@ class ParticipantDataScreen extends ScreenAdaptor {
     }
   }
 
+  val introPane: Label = new Label {
+    styleClass.add("welcome_text")
+    text = "欢迎参加生物知识学习实验！"
+  }
+
+  val gridPane: GridPane = new GridPane {
+    styleClass.add("ParticipantGridPane")
+    val id_l = new Label("编号")
+    val id_i: TextField = new TextField {
+      promptText = "输入编号"
+    }
+    GridPane.setConstraints(id_l, 0,0)
+    GridPane.setConstraints(id_i, 1,0)
+    val gender_l = new Label("性别")
+    val gender_i: ChoiceBox[Gender] = new ChoiceBox[Gender] {
+      items = ObservableBuffer(Male, Female)
+      delegate.getSelectionModel.selectFirst()
+      converter = new StringConverter[Gender] {
+        override def fromString(string: String): Gender = Male
+        override def toString(t: Gender): String = t match {
+          case Male => "男"
+          case Female => "女"
+        }
+      }
+    }
+    GridPane.setConstraints(gender_l, 0,1)
+    GridPane.setConstraints(gender_i, 1,1)
+    val age_l = new Label("年龄")
+    val age_i: TextField = new TextField {
+      promptText = "输入年龄"
+      textFormatter = new TextFormatter[String]((t: Change) => {
+        if (t.getText.matches("[0-9]*")) t else null
+      })
+    }
+    GridPane.setConstraints(age_l, 0,2)
+    GridPane.setConstraints(age_i, 1,2)
+    val major_l = new Label("专业")
+    val major_i: TextField = new TextField {
+      promptText = "输入专业"
+    }
+    GridPane.setConstraints(major_l, 0,3)
+    GridPane.setConstraints(major_i, 1,3)
+    val grade_l = new Label("年级")
+    val grade_i: ChoiceBox[String] = new ChoiceBox[String] {
+      items = ObservableBuffer(
+        "大一", "大二", "大三", "大四", "研一", "研二", "研三", "博一", "博二", "博士三或者更高", "其它"
+      )
+      delegate.getSelectionModel.selectFirst()
+    }
+    GridPane.setConstraints(grade_l, 0,4)
+    GridPane.setConstraints(grade_i, 1,4)
+    val ok: Button = new Button("确定") {
+      onAction = _ => {
+        checkInputAndGo(id_i.text(), gender_i.value(), age_i.text(), major_i.text(), grade_i.value())
+      }
+    }
+    GridPane.setConstraints(ok, 0, 5)
+    children = Seq(
+      id_l, id_i, gender_l, gender_i, age_l, age_i, major_l, major_i, grade_l, grade_i, ok
+    )
+  }
+
   override def initScreen(): Screen = {
-    layout = new GridPane {
-      padding = Insets(10)
-      hgap = 10
-      vgap = 10
+    layout = new VBox {
       alignment = Pos.Center
-      val id_l = new Label("编号") {
-        font = Font.font(participantCollectFontSize)
-      }
-      val id_i: TextField = new TextField {
-        font = Font.font(participantCollectFontSize)
-        promptText = "输入编号"
-      }
-      GridPane.setConstraints(id_l, 0,0)
-      GridPane.setConstraints(id_i, 1,0)
-      val gender_l = new Label("性别"){
-        font = Font.font(participantCollectFontSize)
-      }
-      val gender_i: ChoiceBox[Gender] = new ChoiceBox[Gender] {
-        items = ObservableBuffer(Male, Female)
-        delegate.getSelectionModel.selectFirst()
-        converter = new StringConverter[Gender] {
-          override def fromString(string: String): Gender = Male
-          override def toString(t: Gender): String = t match {
-            case Male => "男"
-            case Female => "女"
-          }
-        }
-      }
-      GridPane.setConstraints(gender_l, 0,1)
-      GridPane.setConstraints(gender_i, 1,1)
-      val age_l = new Label("年龄"){
-        font = Font.font(participantCollectFontSize)
-      }
-      val age_i: TextField = new TextField {
-        font = Font.font(participantCollectFontSize)
-        promptText = "输入年龄"
-        textFormatter = new TextFormatter[String]((t: Change) => {
-          if (t.getText.matches("[0-9]*")) t else null
-        })
-      }
-      GridPane.setConstraints(age_l, 0,2)
-      GridPane.setConstraints(age_i, 1,2)
-      val major_l = new Label("专业"){
-        font = Font.font(participantCollectFontSize)
-      }
-      val major_i: TextField = new TextField {
-        font = Font.font(participantCollectFontSize)
-        promptText = "输入专业"
-      }
-      GridPane.setConstraints(major_l, 0,3)
-      GridPane.setConstraints(major_i, 1,3)
-      val grade_l = new Label("年级"){
-        font = Font.font(participantCollectFontSize)
-      }
-      val grade_i: ChoiceBox[String] = new ChoiceBox[String] {
-        items = ObservableBuffer(
-          "大一", "大二", "大三", "大四", "研一", "研二", "研三", "博一", "博二", "博士三或者更高", "其它"
-        )
-        delegate.getSelectionModel.selectFirst()
-      }
-      GridPane.setConstraints(grade_l, 0,4)
-      GridPane.setConstraints(grade_i, 1,4)
-      val ok: Button = new Button("确定") {
-        font = Font.font(participantCollectFontSize)
-        onAction = _ => {
-          checkInputAndGo(id_i.text(), gender_i.value(), age_i.text(), major_i.text(), grade_i.value())
-        }
-      }
-      GridPane.setConstraints(ok, 0, 5)
       children = Seq(
-        id_l, id_i, gender_l, gender_i, age_l, age_i, major_l, major_i, grade_l, grade_i, ok
+        introPane, gridPane
       )
     }.delegate
     duration = inf
@@ -384,23 +372,14 @@ class KnowledgeScreen(val question: KnowledgeQuestion) extends ScreenAdaptor {
     layout = new BorderPane {
 
       top = new HBox {
-        padding = Insets(knowledgeScreenHeaderContentPaddingTop,0,0,
-          knowledgeScreenHeaderContentPaddingLeft)
-        children = Seq(
-          new Text("请您根据现有的知识情况选择相符的选项") {
-            font = Font.font(knowledgeScreenHeaderIntroFontSize)
-          }
-        )
+        styleClass.add("knowledgeScreenHeaderIntro")
+        children = Seq(new Text("请您根据现有的知识情况选择相符的选项"))
       }
 
       center = new GridPane {
-        //gridLinesVisible = true
-        padding = Insets(knowledgeScreenContentPaddingTop, 0,0,knowledgeScreenContentPaddingLeft)
-        hgap = knowledgeScreenOptionHGap
-        vgap = knowledgeScreenOptionVGap
-
+        styleClass.add("knowledgeScreenHeaderContentGridPane")
         val contentString: Text = new Text(question.content) {
-          font = Font.font(knowledgeScreenHeaderContentFontSize)
+          styleClass.add("knowledgeScreenHeaderContent")
           wrappingWidth = knowledgeScreenContentWrapWidth
         }
         GridPane.setConstraints(contentString, 0,0,6,1)
@@ -416,9 +395,9 @@ class KnowledgeScreen(val question: KnowledgeQuestion) extends ScreenAdaptor {
         question.answers.foreach(answer => {
           logger.debug(s"Answer now is $answer")
           val button = new RadioButton {
+            styleClass.add("knowledgeScreenHeaderOption")
             toggleGroup = tg
             text = answer.content
-            font = Font.font(knowledgeOptionFontSize)
             userData = answer
           }
           children.add(button)
@@ -466,75 +445,60 @@ class MeasureScreen[K](val quiz: MeasureQuiz[K],
     quiz.fill(selectedNowAnswer()._1, selectedNowAnswer()._2)
   }
 
+  lazy val (percents, defined_width) = quiz match {
+    case _: ConMeasureQuiz => (ROWS(conMeasureQuizRowWidths), DEFINED_WIDTH(conMeasureQuizRowWidths))
+    case _: AgentMeasureQuiz => (ROWS(agentMeasureQuizRowWidths), DEFINED_WIDTH(agentMeasureQuizRowWidths))
+    case _: MotiveMeasureQuiz => (ROWS(motiveMeasureQuizRowWidths), DEFINED_WIDTH(motiveMeasureQuizRowWidths))
+    case _: EmotionMeasureQuiz => (ROWS(emotionMeasureQuizRowWidths), DEFINED_WIDTH(emotionMeasureQuizRowWidths))
+  }
+
   override def initScreen(): Screen = {
     layout = new BorderPane { bp =>
-      top = new TextFlow(new Text(quiz.intro) {
-        font = Font.font(measureQuizIntroFontSize)
-      }) {
-        padding = Insets(
-          measureQuizIntroHeaderPaddingTop,
-          measureQuizIntroHeaderPaddingRight,
-          measureQuizIntroHeaderPaddingBottom,
-          measureQuizIntroHeaderPaddingLeft
-        )
+      top = new TextFlow(new Text(quiz.intro)) {
+        styleClass.add("measureQuizIntro")
       }
-      center = new HBox {
+      center = new HBox { hb =>
+        styleClass.add("measureQuizHeaderContentAnswerHBox")
         children = Seq(
           new GridPane { gpa =>
-            HBox.setHgrow(this, Priority.Always)
-            maxWidth <== bp.width * (measureQuizFormPercent * 1.0 / 100)
-            padding = Insets(
-              0,
-              measureQuizIntroHeaderPaddingRight,
-              measureQuizIntroHeaderPaddingBottom,
-              measureQuizIntroHeaderPaddingLeft
-            )
-            //gridLinesVisible = true
-            val percent: Double = answers.length match {
-              case i if i < 10 => measureQuizAnswerPercent
-              case _ => measureQuizAnswerPercentWhenTooManyAnswers
-            }
-            val measureQuizContentPercentLocal: Int = answers.length match {
-              case i if i >= 10 => measureQuizContentPercentWhenTooManyAnswers
-              case _ => measureQuizContentPercent
-            }
-            columnConstraints.add(new ColumnConstraints() {
-              delegate.setPercentWidth(measureQuizContentPercentLocal)
-            }.delegate)
+            styleClass.add("measureQuizHeaderContentAnswerGridPane")
+            prefWidth = defined_width
+            //放置标题文本
             answers.indices.foreach(i => {
               val a = answers(i)
               val t = new Text(a.content) {
-                font = Font.font(measureQuizDescriptionFontSize)
+                styleClass.add("measureQuizHeaderText")
               }
               children.add(t)
               GridPane.setConstraints(t, i + 1, 0,
                 1,1, HPos.Center, VPos.Center)
-              columnConstraints.add(i + 1, new ColumnConstraints() {
-                delegate.setPercentWidth(percent)
+            })
+            //定义标题行各列宽度
+            percents.indices.foreach(index => {
+              val rowPercent = percents(index)
+              columnConstraints.add(index, new ColumnConstraints() {
+                delegate.setPercentWidth(rowPercent)
               }.delegate)
             })
             val measureContent: ScrollPane = new ScrollPane with OutFocus {
-              hbarPolicy = ScrollBarPolicy.Never
-              vbarPolicy = ScrollBarPolicy.Never
+              styleClass.add("measureQuizContentAnswerScrollPane")
               content = new GridPane { gpb =>
-                prefWidth <== gpa.width - gpa.padding().getLeft - gpa.padding().getRight
-                //gridLinesVisible = true
-                padding = Insets(20,0,0,0)
-                vgap = measureQuizContentGap
-                columnConstraints.add(new ColumnConstraints() {
-                  delegate.setPercentWidth(measureQuizContentPercentLocal)
-                }.delegate)
-                answers.indices.foreach(i => {
-                  columnConstraints.add(i + 1, new ColumnConstraints() {
-                    delegate.setPercentWidth(percent)
+                padding = Insets(0)
+                styleClass.add("measureQuizContentAnswerGridPane")
+                prefWidth <== gpa.width
+                //定义内部各列宽度
+                percents.indices.foreach(index => {
+                  val rowPercent = percents(index)
+                  gpb.columnConstraints.add(index, new ColumnConstraints() {
+                    delegate.setPercentWidth(rowPercent)
                   }.delegate)
                 })
-
+                //写入内部各行内容
                 var currentLine = 0
                 quiz.questions.indices.foreach(questionLine => {
                   val questionNow = quiz.questions(questionLine)
                   val questionText = new TextFlow(new Text(questionNow.content) {
-                    font = Font.font(measureQuizContentFontSize)
+                    styleClass.add("measureQuizContextText")
                   })
                   GridPane.setConstraints(questionText, 0, currentLine)
                   children.add(questionText)
@@ -618,6 +582,8 @@ class VideoPlayAndFeedBackScreen(val isNormal:Boolean = true) extends ScreenAdap
     smooth = true
   }
 
+  var startMS: Long = _
+
   override def initScreen(): Screen = {
     layout = new StackPane {
       style = "-fx-background-color: black"
@@ -674,7 +640,8 @@ class VideoPlayAndFeedBackScreen(val isNormal:Boolean = true) extends ScreenAdap
   }
 
   override def callWhenLeavingScreen(): Unit = {
-    logger.info("Stopping Record Call now...")
+    logger.info("Stopping Record Call now, Recording Timer End and Update Data...")
+    Data.learnUseSeconds = ((System.currentTimeMillis() - startMS) * 1.0 / 1000).toInt
     SimpleCameraUtil.stopRecordNow()
   }
 
@@ -701,6 +668,8 @@ class VideoPlayAndFeedBackScreen(val isNormal:Boolean = true) extends ScreenAdap
       if (o && !n) player.play()
       else if (!o && n) player.pause()
     })
+    logger.info("Start Play Time Record...")
+    startMS = System.currentTimeMillis()
   }
 
   def stopMedia(): Unit = {
@@ -727,7 +696,7 @@ object FXWApplication extends JFXApp with Logger {
 
   val fullScreenChoose = BooleanProperty(true)
 
-  val expertTo: LocalDateTime = LocalDate.parse("2019-11-15").atStartOfDay()
+  val expertTo: LocalDateTime = LocalDate.parse("2019-11-23").atStartOfDay()
 
   if (Duration.between(LocalDateTime.now(), expertTo).toDays < 0) {
     alert("错误的软件许可，请联系软件开发和维护人员。")
@@ -756,6 +725,20 @@ object FXWApplication extends JFXApp with Logger {
       children.addAll(label, textField)
     }
 
+    def add(lab:String, variable:String, line: Int)(op: String => Unit): Unit = {
+      val label = new Label(lab)
+      val textField = new TextField {
+        text = variable
+        promptText = lab
+        text.addListener(_ => {
+          op(text())
+        })
+      }
+      GridPane.setConstraints(label, 0, line)
+      GridPane.setConstraints(textField, 1, line)
+      children.addAll(label, textField)
+    }
+
     def add(lab:String, variable:Boolean, line: Int)(op: Boolean => Unit): Unit = {
       val label = new Label(lab)
       val choose = new CheckBox {
@@ -773,113 +756,63 @@ object FXWApplication extends JFXApp with Logger {
     children.add(optionStr)
     GridPane.setConstraints(optionStr, 0, 0)
     import FXWExperiment._
-    add("题目标题提示语字体大小", knowledgeScreenHeaderIntroFontSize, 1) {
-      knowledgeScreenHeaderIntroFontSize = _
-    }
-    add("题目内容文本大小", knowledgeScreenHeaderContentFontSize, 2) {
-      knowledgeScreenHeaderContentFontSize = _
-    }
-    add("题目内容左边距", knowledgeScreenHeaderContentPaddingLeft, 3) {
-      knowledgeScreenHeaderContentPaddingLeft = _
-    }
-    add("题目内容上边距", knowledgeScreenHeaderContentPaddingTop, 4) {
-      knowledgeScreenHeaderContentPaddingTop = _
-    }
-    add("内容左边距", knowledgeScreenContentPaddingLeft, 5) {
-      knowledgeScreenContentPaddingLeft = _
-    }
-    add("内容上边距", knowledgeScreenContentPaddingTop, 6) {
-      knowledgeScreenContentPaddingTop = _
-    }
-    add("内容超过此宽度换行", knowledgeScreenContentWrapWidth, 7) {
-      knowledgeScreenContentWrapWidth = _
-    }
-    add("选项字体大小", knowledgeOptionFontSize, 8) {
-      knowledgeOptionFontSize = _
-    }
-    add("选项和内容垂直间隔", knowledgeScreenOptionVGap, 9) {
-      knowledgeScreenOptionVGap = _
-    }
-    add("选项之间间隔", knowledgeScreenOptionHGap, 10) {
-      knowledgeScreenOptionHGap = _
-    }
-    add("量表介绍语字体大小", measureQuizIntroFontSize, 11) {
-      measureQuizIntroFontSize = _
-    }
-    add("量表表头字体大小", measureQuizDescriptionFontSize, 12) {
-      measureQuizDescriptionFontSize = _
-    }
-    add("量表介绍语上边距", measureQuizIntroHeaderPaddingTop, 13) {
-      measureQuizIntroHeaderPaddingTop = _
-    }
-    add("量表介绍语下边距", measureQuizIntroHeaderPaddingBottom, 14) {
-      measureQuizIntroHeaderPaddingBottom = _
-    }
-    add("量表介绍语左边距", measureQuizIntroHeaderPaddingLeft, 15) {
-      measureQuizIntroHeaderPaddingLeft = _
-    }
-    add("量表介绍语右边距", measureQuizIntroHeaderPaddingRight, 16) {
-      measureQuizIntroHeaderPaddingRight = _
-    }
-    add("量表表格内容字体", measureQuizContentFontSize, 17) {
-      measureQuizContentFontSize = _
-    }
-    add("量表表格占屏幕百分比", measureQuizFormPercent, 18) {
-      measureQuizFormPercent = _
-    }
-    add("量表内容占量表百分比", measureQuizContentPercent, 19) {
-      measureQuizContentPercent = _
-    }
-    add("量表内容行间距", measureQuizContentGap, 20) {
-      measureQuizContentGap = _
-    }
-    add("显示量表行线", measureQuizContentGapLineVisible, 21) {
-      measureQuizContentGapLineVisible = _
-    }
-    add("过多选项时量表内容百分比", measureQuizContentPercentWhenTooManyAnswers, 22) {
-      measureQuizContentPercentWhenTooManyAnswers = _
-    }
-    add("量表选项每个选项占表格百分比", measureQuizAnswerPercent, 23) {
-      measureQuizAnswerPercent = _
-    }
-    add("量表每个选项占表格百分比(过多选项)", measureQuizAnswerPercentWhenTooManyAnswers, 24) {
-      measureQuizAnswerPercentWhenTooManyAnswers = _
-    }
-    add("指导语图片的宽度（像素）", imageWidthDefined, 25) {
+    add("指导语图片的宽度（像素）", imageWidthDefined, 1) {
       imageWidthDefined = _
     }
-    add("在被试观看过程中录像", useCameraRecord, 26) {
+    add("内容超过此宽度换行", knowledgeScreenContentWrapWidth, 2) {
+      knowledgeScreenContentWrapWidth = _
+    }
+    add("显示量表行线", measureQuizContentGapLineVisible, 3) {
+      measureQuizContentGapLineVisible = _
+    }
+
+    add("情绪量表(总宽度、每列比例)", emotionMeasureQuizRowWidths, 4) {
+      emotionMeasureQuizRowWidths = _
+    }
+    add("代理量表(总宽度、每列比例)", agentMeasureQuizRowWidths, 5) {
+      agentMeasureQuizRowWidths = _
+    }
+    add("认知量表(总宽度、每列比例)", conMeasureQuizRowWidths, 6) {
+      conMeasureQuizRowWidths = _
+    }
+    add("动机量表(总宽度、每列比例)", motiveMeasureQuizRowWidths, 7) {
+      motiveMeasureQuizRowWidths = _
+    }
+
+    add("在被试观看过程中录像", useCameraRecord, 8) {
       useCameraRecord = _
     }
-    add("使用正常情绪视频（而非积极）",useNormalEmotion, 27) {
+    add("使用正常情绪视频（而非积极）",useNormalEmotion, 9) {
       useNormalEmotion = _
     }
-    add("当摄像头初始化完毕后再播放视频", playVideoUntilCameraInit, 28) {
+    add("当摄像头初始化完毕后再播放视频", playVideoUntilCameraInit, 10) {
       playVideoUntilCameraInit = _
     }
-    add("允许被试使用空格暂停视频", allowSpaceControlMediaPause, 29) {
+    add("允许被试使用空格暂停视频", allowSpaceControlMediaPause, 11) {
       allowSpaceControlMediaPause = _
     }
-    add("不使用前测知识问卷", notUsePreKnowledgeQuestion, 30) {
+
+    add("不使用前测知识问卷", notUsePreKnowledgeQuestion, 12) {
       notUsePreKnowledgeQuestion = _
     }
-    add("使用随机的认知量表问卷", useRandomConMeasureQuiz, 31) {
+    add("使用随机的认知量表问卷", useRandomConMeasureQuiz, 13) {
       useRandomConMeasureQuiz = _
     }
-    add("被试信息收集界面字体大小", participantCollectFontSize, 32) {
-      participantCollectFontSize = _
+
+    add("跳过视频", skipVideo, 14) {
+      skipVideo = _
     }
 
     val fullScreenCheck: CheckBox = new CheckBox("使用全屏") {
       selected <==> fullScreenChoose
     }
-    GridPane.setConstraints(fullScreenCheck, 0, 33)
+    GridPane.setConstraints(fullScreenCheck, 0, 15)
     children.add(fullScreenCheck)
 
     val runBtn: Button = new Button("开始") {
       onAction = _ => runExperiment(stage)
     }
-    GridPane.setConstraints(runBtn, 0, 34)
+    GridPane.setConstraints(runBtn, 0, 17)
     children.add(runBtn)
   }
 
@@ -888,6 +821,7 @@ object FXWApplication extends JFXApp with Logger {
   }
 
   stage = new PrimaryStage {
+    title = VERSION(version)
     scene = new SScene(500, 800) {
       root = scrollPane
       onShown = _ => {
@@ -910,6 +844,7 @@ object FXWApplication extends JFXApp with Logger {
       }
     })
     helper.initStage(stage)
+    helper.getScene.getStylesheets.add("file:fxw/custom.css")
     stage.setTitle("FXWExperiment")
     stage.setFullScreen(fullScreenChoose())
     stage.show()

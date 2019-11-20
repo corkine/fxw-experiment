@@ -41,7 +41,7 @@ object MeasureQuestion {
       })
     }
 
-  def ten[K](content: String, kind: K): MeasureQuestion[K] =
+  def eleven[K](content: String, kind: K): MeasureQuestion[K] =
     new MeasureQuestion[K](kind, content) {
       override val answers: Seq[Degree] = handlePointCount11
     }
@@ -99,7 +99,7 @@ abstract class MeasureQuiz[K] extends Quiz[MeasureQuestion[K], Degree, K] with L
 
 class EmotionMeasureQuiz extends MeasureQuiz[Emotion] {
 
-  val intro: String = "下是生活中可能出现的情绪感受，请根据你此时此刻的情绪状态，选择符合你的选项。"
+  val intro: String = "下是生活中可能出现的情绪感受，请根据你此时此刻的情绪状态，选择符合你的选项。(本问卷共20题)"
 
   private implicit val d: Array[String] =
     MeasureQuestion.desp1
@@ -131,7 +131,7 @@ class EmotionMeasureQuiz extends MeasureQuiz[Emotion] {
 
 class AgentMeasureQuiz extends MeasureQuiz[Effect] {
 
-  val intro = "以下是关于刚在学习视频中屏幕左侧的教学代理的评价，然后根据自己的实际情况，选择相应的选项。"
+  val intro = "以下是关于刚在学习视频中屏幕左侧的教学代理的评价，然后根据自己的实际情况，选择相应的选项。(本问卷共25题)"
 
   private implicit val d: Array[String] = MeasureQuestion.desp2
 
@@ -166,50 +166,50 @@ class AgentMeasureQuiz extends MeasureQuiz[Effect] {
 
 class ConMeasureQuiz extends MeasureQuiz[Load] {
 
-  val intro = "以下的所有问题指的都是你刚刚进行的学习活动。请选择符合你的选项。其中，0代表完全不符合，10代表完全符合。"
+  val intro = "以下的所有问题指的都是你刚刚进行的学习活动。请选择符合你的选项。其中，0代表完全不符合，10代表完全符合。(本问卷共13题)"
 
   val questions: Array[MeasureQuestion[Load]] = Array(
-    MeasureQuestion.ten("1.学习视频的内容是非常复杂的。", Inside),
-    MeasureQuestion.ten("2.学习视频所涉及的问题是非常复杂的。", Inside),
-    MeasureQuestion.ten("3.学习视频中所提及的概念是非常复杂的。", Inside),
-    MeasureQuestion.ten("4.我投入了非常多的心理努力在学习视频的复杂内容上。", Inside),
+    MeasureQuestion.eleven("1.学习视频的内容是非常复杂的。", Inside),
+    MeasureQuestion.eleven("2.学习视频所涉及的问题是非常复杂的。", Inside),
+    MeasureQuestion.eleven("3.学习视频中所提及的概念是非常复杂的。", Inside),
+    MeasureQuestion.eleven("4.我投入了非常多的心理努力在学习视频的复杂内容上。", Inside),
 
-    MeasureQuestion.ten("5.学习视频中的解释和说明是非常不清楚的。", Outside),
-    MeasureQuestion.ten("6.学习视频中的解释和说明都充满了不清晰的语言。", Outside),
-    MeasureQuestion.ten("7.从学习的角度看，学习视频的解释和说明是非常无效的。", Outside),
-    MeasureQuestion.ten("8.我投入了很多的心理努力在学习视频的无效解释和说明上。", Outside),
+    MeasureQuestion.eleven("5.学习视频中的解释和说明是非常不清楚的。", Outside),
+    MeasureQuestion.eleven("6.学习视频中的解释和说明都充满了不清晰的语言。", Outside),
+    MeasureQuestion.eleven("7.从学习的角度看，学习视频的解释和说明是非常无效的。", Outside),
+    MeasureQuestion.eleven("8.我投入了很多的心理努力在学习视频的无效解释和说明上。", Outside),
 
-    MeasureQuestion.ten("9.此次学习确实增加了我对学习视频中所含内容的理解。", Relation),
-    MeasureQuestion.ten("10.此次学习确实增加了我对学习视频中所涉及问题的理解。", Relation),
-    MeasureQuestion.ten("11.此次学习增加了我对学习视频中提及的概念的理解。", Relation),
-    MeasureQuestion.ten("12.此次学习确实增强了我对相关内容的知识及理解。", Relation),
-    MeasureQuestion.ten("13. 在此次学习中我投入了很多心理努力来増加我的知识和理解。", Relation),
+    MeasureQuestion.eleven("9.此次学习确实增加了我对学习视频中所含内容的理解。", Relation),
+    MeasureQuestion.eleven("10.此次学习确实增加了我对学习视频中所涉及问题的理解。", Relation),
+    MeasureQuestion.eleven("11.此次学习增加了我对学习视频中提及的概念的理解。", Relation),
+    MeasureQuestion.eleven("12.此次学习确实增强了我对相关内容的知识及理解。", Relation),
+    MeasureQuestion.eleven("13. 在此次学习中我投入了很多心理努力来増加我的知识和理解。", Relation),
   )
 }
 
 class ManualConMeasureQuiz extends ConMeasureQuiz {
 
   override val questions: Array[MeasureQuestion[Load]] = Array(
-    MeasureQuestion.ten("1.此次学习确实增加了我对学习视频中所含内容的理解。", Relation),
-    MeasureQuestion.ten("2.学习视频的内容是非常复杂的。", Inside),
-    MeasureQuestion.ten("3.学习视频中的解释和说明是非常不清楚的。", Outside),
-    MeasureQuestion.ten("4.此次学习确实增加了我对学习视频中所涉及问题的理解。", Relation),
-    MeasureQuestion.ten("5.学习视频所涉及的问题是非常复杂的。", Inside),
-    MeasureQuestion.ten("6.学习视频中的解释和说明都充满了不清晰的语言。", Outside),
-    MeasureQuestion.ten("7.此次学习增加了我对学习视频中提及的概念的理解。", Relation),
-    MeasureQuestion.ten("8.学习视频中所提及的概念是非常复杂的。", Inside),
-    MeasureQuestion.ten("9.从学习的角度看，学习视频的解释和说明是非常无效的。", Outside),
-    MeasureQuestion.ten("10. 在此次学习中我投入了很多心理努力来増加我的知识和理解。", Relation),
-    MeasureQuestion.ten("11.我投入了非常多的心理努力在学习视频的复杂内容上。", Inside),
-    MeasureQuestion.ten("12.我投入了很多的心理努力在学习视频的无效解释和说明上。", Outside),
-    MeasureQuestion.ten("13.此次学习确实增强了我对相关内容的知识及理解。", Relation),
+    MeasureQuestion.eleven("1.此次学习确实增加了我对学习视频中所含内容的理解。", Relation),
+    MeasureQuestion.eleven("2.学习视频的内容是非常复杂的。", Inside),
+    MeasureQuestion.eleven("3.学习视频中的解释和说明是非常不清楚的。", Outside),
+    MeasureQuestion.eleven("4.此次学习确实增加了我对学习视频中所涉及问题的理解。", Relation),
+    MeasureQuestion.eleven("5.学习视频所涉及的问题是非常复杂的。", Inside),
+    MeasureQuestion.eleven("6.学习视频中的解释和说明都充满了不清晰的语言。", Outside),
+    MeasureQuestion.eleven("7.此次学习增加了我对学习视频中提及的概念的理解。", Relation),
+    MeasureQuestion.eleven("8.学习视频中所提及的概念是非常复杂的。", Inside),
+    MeasureQuestion.eleven("9.从学习的角度看，学习视频的解释和说明是非常无效的。", Outside),
+    MeasureQuestion.eleven("10. 在此次学习中我投入了很多心理努力来増加我的知识和理解。", Relation),
+    MeasureQuestion.eleven("11.我投入了非常多的心理努力在学习视频的复杂内容上。", Inside),
+    MeasureQuestion.eleven("12.我投入了很多的心理努力在学习视频的无效解释和说明上。", Outside),
+    MeasureQuestion.eleven("13.此次学习确实增强了我对相关内容的知识及理解。", Relation),
   )
 
 }
 
 class MotiveMeasureQuiz extends MeasureQuiz[Same] {
 
-  val intro = "针对刚才的学习，请仔细阅读每一项，然后根据自己的实际情况，选择相应的选项。"
+  val intro = "针对刚才的学习，请仔细阅读每一项，然后根据自己的实际情况，选择相应的选项。(本问卷共8题)"
 
   val questions: Array[MeasureQuestion[Same]] = Array(
     MeasureQuestion.seven("1.它激起了我的好奇心。", NoDifferent),
