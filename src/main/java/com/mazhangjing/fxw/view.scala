@@ -1,26 +1,25 @@
 package com.mazhangjing.fxw
 
-import java.io.{File, FileWriter}
+import java.io.{File, FileReader, FileWriter}
 import java.time.{Duration, LocalDate, LocalDateTime}
 import java.util
+import java.util.Properties
 import java.util.concurrent.TimeUnit
 
-import com.mazhangjing.lab.LabUtils
 import com.mazhangjing.fxw.FXWExperiment._
 import com.mazhangjing.fxw.model._
 import com.mazhangjing.lab.LabUtils.goNextScreenSafe
-import com.mazhangjing.lab._
+import com.mazhangjing.lab.{LabUtils, _}
 import com.mazhangjing.scalafx.utils.OutFocus
 import javafx.event.Event
 import javafx.scene.Scene
 import javafx.scene.input.KeyCode
 import org.slf4j
 import org.slf4j.LoggerFactory
-import scalafx.application.{JFXApp, Platform}
 import scalafx.application.JFXApp.PrimaryStage
+import scalafx.application.{JFXApp, Platform}
 import scalafx.beans.property.{BooleanProperty, DoubleProperty, ObjectProperty}
 import scalafx.collections.ObservableBuffer
-import scalafx.concurrent.Task
 import scalafx.geometry.{HPos, Insets, Pos, VPos}
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.ScrollPane.ScrollBarPolicy
@@ -38,7 +37,7 @@ import scalafx.util.StringConverter
 import scala.util.{Failure, Success, Try}
 
 
-object FXWExperiment {
+object FXWExperiment extends Logger {
   val version: String =
     """
       |0.0.0 2019-11-09 编写模型
@@ -50,21 +49,30 @@ object FXWExperiment {
       |0.0.6 2019-11-13 修改了认知量表的顺序、更改了视频指导语、更改了前测问卷的可选性以及答案的收集判断。
       |0.0.7 2019-11-13 被试信息收集界面字体大小调整，题目内容调整。
       |0.0.8 2019-11-20 修复了被试数据保存问题，修复性别保存的易读性问题，添加学习时长的保存记录，添加了卷首语，提供了 CSS 自定义功能，重构了 UI，大多使用 CSS 定义，方便后续更改，允许表格自定义每列列宽和总列宽，提供跳过视频选项。
+      |0.0.9 2019-11-21 添加了 properties 驱动的默认值配置。
+      |0.1.0 2019-11-22 修复宽度问题
       |""".stripMargin
 
   def VERSION(in:String):String = in.split("\n").map(_.trim).reverse.head
 
+  val default = new Properties()
+  logger.info("Loading Properties from fxw/default.properties")
+  default.load(new FileReader(new File("fxw/default.properties")))
+  logger.info("Setting " + default.toString)
+
   val inf = 100000000
   val min2: Int = 1000 * 60 * 2
 
-  var imageWidthDefined = 800
+  var imageWidthDefined: Int =
+    default.getProperty("imageWidth","800").toInt
   val totalIntro = "totalIntro.png"
   val learnIntro = "learnIntro.png"
   val learnIntro2 = "learnIntro2.png"
   val finishIntro = "finishIntro.png"
   val videoMark: (String, String) = ("normal.mp4", "positive.mp4")
 
-  var knowledgeScreenContentWrapWidth = 720
+  var knowledgeScreenContentWrapWidth: Int =
+    default.getProperty("contentWrapWidth","720").toInt
 
   var measureQuizContentGapLineVisible = true
 
@@ -75,10 +83,14 @@ object FXWExperiment {
   var notUsePreKnowledgeQuestion = false
   var useRandomConMeasureQuiz = true
 
-  var emotionMeasureQuizRowWidths = "1400 30 14 14 14 14 14" //1 + 5
-  var agentMeasureQuizRowWidths = "1400 30 14 14 14 14 14" //1 + 5
-  var conMeasureQuizRowWidths = "1700 30 7 2 2 2 2 2 2 2 2 2 7" //1 + 11
-  var motiveMeasureQuizRowWidths = "1400 30 10 10 10 10 10 10 10" //1 + 7
+  var emotionMeasureQuizRowWidths: String =
+    default.getProperty("emotionWidths","1400 30 14 14 14 14 14")//1 + 5
+  var agentMeasureQuizRowWidths: String =
+    default.getProperty("agentWidths","1400 30 14 14 14 14 14")//1 + 5
+  var conMeasureQuizRowWidths: String =
+    default.getProperty("congWidths","1700 30 7 2 2 2 2 2 2 2 2 2 7")//1 + 11
+  var motiveMeasureQuizRowWidths: String =
+    default.getProperty("motiveWidths","1400 30 10 10 10 10 10 10 10")//1 + 7
   def ROWS(in:String): Array[Int] = in.trim.split(" ").map(_.trim.toInt).tail
   def DEFINED_WIDTH(in:String): Int = in.trim.split(" ").map(_.trim.toInt).head
 
@@ -216,27 +228,27 @@ class FXWExperiment extends Experiment with Logger {
 
 class BasicTrial extends Trial {
   override def initTrial(): Trial = {
-    //User
-    screens.add(new ParticipantDataScreen().initScreen())
-    //All Intro
-    screens.add(new IntroductionScreen(load(totalIntro)).initScreen())
-    if (!notUsePreKnowledgeQuestion) {
-      //Knowledge
-      Data.knowledgeQuiz.questions.foreach(f => {
-        screens.add(new KnowledgeScreen(f).initScreen())
-      })
-    }
-    //PreEmotion
-    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizA).initScreen())
-    //Video Intro
-    screens.add(new IntroductionScreen(load(learnIntro)).initScreen())
-    //Video
-    if (!skipVideo) screens.add(new VideoPlayAndFeedBackScreen(useNormalEmotion).initScreen())
-    //Video Intro 2
-    screens.add(new IntroductionScreen(load(learnIntro2)).initScreen())
-    //AfterEmotion
-    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizB).initScreen())
-    //Measure Quiz
+//    //User
+//    screens.add(new ParticipantDataScreen().initScreen())
+//    //All Intro
+//    screens.add(new IntroductionScreen(load(totalIntro)).initScreen())
+//    if (!notUsePreKnowledgeQuestion) {
+//      //Knowledge
+//      Data.knowledgeQuiz.questions.foreach(f => {
+//        screens.add(new KnowledgeScreen(f).initScreen())
+//      })
+//    }
+//    //PreEmotion
+//    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizA).initScreen())
+//    //Video Intro
+//    screens.add(new IntroductionScreen(load(learnIntro)).initScreen())
+//    //Video
+//    if (!skipVideo) screens.add(new VideoPlayAndFeedBackScreen(useNormalEmotion).initScreen())
+//    //Video Intro 2
+//    screens.add(new IntroductionScreen(load(learnIntro2)).initScreen())
+//    //AfterEmotion
+//    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizB).initScreen())
+//    //Measure Quiz
     screens.add(new MeasureScreen[Load](Data.conMeasureQuiz).initScreen())
     screens.add(new MeasureScreen[Effect](Data.agentMeasureQuiz).initScreen())
     screens.add(new MeasureScreen[Same](Data.motiveMeasureQuiz).initScreen())
@@ -463,6 +475,7 @@ class MeasureScreen[K](val quiz: MeasureQuiz[K],
           new GridPane { gpa =>
             styleClass.add("measureQuizHeaderContentAnswerGridPane")
             prefWidth = defined_width
+            logger.info(s"Defined Width is $defined_width")
             //放置标题文本
             answers.indices.foreach(i => {
               val a = answers(i)
@@ -476,16 +489,18 @@ class MeasureScreen[K](val quiz: MeasureQuiz[K],
             //定义标题行各列宽度
             percents.indices.foreach(index => {
               val rowPercent = percents(index)
-              columnConstraints.add(index, new ColumnConstraints() {
+              logger.debug(s"Setting For index $index and Value is $rowPercent")
+              columnConstraints.add(index, new ColumnConstraints {
                 delegate.setPercentWidth(rowPercent)
               }.delegate)
             })
             val measureContent: ScrollPane = new ScrollPane with OutFocus {
+              prefWidth = defined_width
               styleClass.add("measureQuizContentAnswerScrollPane")
               content = new GridPane { gpb =>
+                prefWidth <== gpa.width
                 padding = Insets(0)
                 styleClass.add("measureQuizContentAnswerGridPane")
-                prefWidth <== gpa.width
                 //定义内部各列宽度
                 percents.indices.foreach(index => {
                   val rowPercent = percents(index)
@@ -696,7 +711,7 @@ object FXWApplication extends JFXApp with Logger {
 
   val fullScreenChoose = BooleanProperty(true)
 
-  val expertTo: LocalDateTime = LocalDate.parse("2019-11-23").atStartOfDay()
+  val expertTo: LocalDateTime = LocalDate.parse("2019-11-27").atStartOfDay()
 
   if (Duration.between(LocalDateTime.now(), expertTo).toDays < 0) {
     alert("错误的软件许可，请联系软件开发和维护人员。")
@@ -848,5 +863,6 @@ object FXWApplication extends JFXApp with Logger {
     stage.setTitle("FXWExperiment")
     stage.setFullScreen(fullScreenChoose())
     stage.show()
+    logger.debug(s"Test Value Change defineWidth $imageWidthDefined")
   }
 }

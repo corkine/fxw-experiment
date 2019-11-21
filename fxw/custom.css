@@ -1,6 +1,6 @@
 /*欢迎指导语文字*/
 .welcome_text {
-    -fx-font-size: 37px;
+    -fx-font-size: 50px;
     -fx-padding: 0 0 30px 0;
 }
 /*被试信息收集框架*/
