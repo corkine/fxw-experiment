@@ -51,6 +51,7 @@ object FXWExperiment extends Logger {
       |0.0.8 2019-11-20 修复了被试数据保存问题，修复性别保存的易读性问题，添加学习时长的保存记录，添加了卷首语，提供了 CSS 自定义功能，重构了 UI，大多使用 CSS 定义，方便后续更改，允许表格自定义每列列宽和总列宽，提供跳过视频选项。
       |0.0.9 2019-11-21 添加了 properties 驱动的默认值配置。
       |0.1.0 2019-11-22 修复宽度问题
+      |1.0.0 2019-11-22 完整版本
       |""".stripMargin
 
   def VERSION(in:String):String = in.split("\n").map(_.trim).reverse.head
@@ -711,7 +712,7 @@ object FXWApplication extends JFXApp with Logger {
 
   val fullScreenChoose = BooleanProperty(true)
 
-  val expertTo: LocalDateTime = LocalDate.parse("2019-11-27").atStartOfDay()
+  val expertTo: LocalDateTime = LocalDate.parse("2022-11-27").atStartOfDay()
 
   if (Duration.between(LocalDateTime.now(), expertTo).toDays < 0) {
     alert("错误的软件许可，请联系软件开发和维护人员。")
