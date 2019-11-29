@@ -52,6 +52,7 @@ object FXWExperiment extends Logger {
       |0.0.9 2019-11-21 添加了 properties 驱动的默认值配置。
       |0.1.0 2019-11-22 修复宽度问题
       |1.0.0 2019-11-22 完整版本
+      |1.0.1 2019年11月29日 修复注释问题
       |""".stripMargin
 
   def VERSION(in:String):String = in.split("\n").map(_.trim).reverse.head
@@ -229,27 +230,27 @@ class FXWExperiment extends Experiment with Logger {
 
 class BasicTrial extends Trial {
   override def initTrial(): Trial = {
-//    //User
-//    screens.add(new ParticipantDataScreen().initScreen())
-//    //All Intro
-//    screens.add(new IntroductionScreen(load(totalIntro)).initScreen())
-//    if (!notUsePreKnowledgeQuestion) {
-//      //Knowledge
-//      Data.knowledgeQuiz.questions.foreach(f => {
-//        screens.add(new KnowledgeScreen(f).initScreen())
-//      })
-//    }
-//    //PreEmotion
-//    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizA).initScreen())
-//    //Video Intro
-//    screens.add(new IntroductionScreen(load(learnIntro)).initScreen())
-//    //Video
-//    if (!skipVideo) screens.add(new VideoPlayAndFeedBackScreen(useNormalEmotion).initScreen())
-//    //Video Intro 2
-//    screens.add(new IntroductionScreen(load(learnIntro2)).initScreen())
-//    //AfterEmotion
-//    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizB).initScreen())
-//    //Measure Quiz
+    //User
+    screens.add(new ParticipantDataScreen().initScreen())
+    //All Intro
+    screens.add(new IntroductionScreen(load(totalIntro)).initScreen())
+    if (!notUsePreKnowledgeQuestion) {
+      //Knowledge
+      Data.knowledgeQuiz.questions.foreach(f => {
+        screens.add(new KnowledgeScreen(f).initScreen())
+      })
+    }
+    //PreEmotion
+    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizA).initScreen())
+    //Video Intro
+    screens.add(new IntroductionScreen(load(learnIntro)).initScreen())
+    //Video
+    if (!skipVideo) screens.add(new VideoPlayAndFeedBackScreen(useNormalEmotion).initScreen())
+    //Video Intro 2
+    screens.add(new IntroductionScreen(load(learnIntro2)).initScreen())
+    //AfterEmotion
+    screens.add(new MeasureScreen[Emotion](Data.emotionMeasureQuizB).initScreen())
+    //Measure Quiz
     screens.add(new MeasureScreen[Load](Data.conMeasureQuiz).initScreen())
     screens.add(new MeasureScreen[Effect](Data.agentMeasureQuiz).initScreen())
     screens.add(new MeasureScreen[Same](Data.motiveMeasureQuiz).initScreen())
