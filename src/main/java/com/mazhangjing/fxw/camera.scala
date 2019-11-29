@@ -51,7 +51,10 @@ object SimpleCameraUtil extends CameraUtil with Logger {
       //recorder.setVideoCodec(13)
       recorder.setFormat("mp4")
       recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P)
-      //recorder.setFrameRate(30)
+      if (FXWExperiment.frameRate != -1) {
+        logger.info(s"Use Custom FrameRate ${FXWExperiment.frameRate}")
+        recorder.setFrameRate(FXWExperiment.frameRate)
+      }
       recorder.setVideoBitrate(10 * 1024 * 1024)
       recorder.start()
 

@@ -53,6 +53,7 @@ object FXWExperiment extends Logger {
       |0.1.0 2019-11-22 修复宽度问题
       |1.0.0 2019-11-22 完整版本
       |1.0.1 2019年11月29日 修复注释问题
+      |1.0.2 2019年11月29日 添加了对生成视频帧率的选项支持
       |""".stripMargin
 
   def VERSION(in:String):String = in.split("\n").map(_.trim).reverse.head
@@ -97,6 +98,7 @@ object FXWExperiment extends Logger {
   def DEFINED_WIDTH(in:String): Int = in.trim.split(" ").map(_.trim.toInt).head
 
   var skipVideo = false
+  var frameRate: Int = default.getProperty("frameRate","-1").toInt
 
 
   def load(name:String): Try[File] = {
